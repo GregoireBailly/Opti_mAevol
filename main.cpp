@@ -29,8 +29,11 @@
 #include <iostream>
 #include <getopt.h>
 #include <cstring>
+#include <chrono>
 
 #include "ExpManager.h"
+
+#define GET_TIME std::chrono::steady_clock::now().time_since_epoch().count()
 
 void print_help(char* prog_path) {
     // Get the program file-name in prog_name (strip prog_path of the path)
@@ -189,7 +192,13 @@ int main(int argc, char* argv[]) {
     printf("Activate CUDA\n");
     exp_manager->run_evolution_on_gpu(nbstep);
 #else
+	long tStamp_start = GET_TIME;
     exp_manager->run_evolution(nbstep);
+	long tStamp_end = GET_TIME;
+	double duration = (tStamp_end - tStamp_start)/1000000000.0;
+
+	printf("Total duration(s): %f  ;  per step: %f  (%d steps)\r\n", duration, duration/nbstep, nbstep);
+	
 #endif
 
     delete exp_manager;
