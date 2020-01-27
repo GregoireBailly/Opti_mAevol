@@ -208,6 +208,13 @@ bool Organism::do_switch(int pos) {
     if (length() >= PROM_SIZE)
         look_for_new_promoters_around(pos, mod(pos + 1, length()));
 
+    // Remove terminators containing the switched base
+    remove_terminators_around(pos, mod(pos + 1, length()));
+
+    // Look for potential new terminators containing the switched base
+    if (length() >= TERM_RANGE)
+        look_for_new_terminators_around(pos, mod(pos + 1, length()));
+
     return true;
 }
 
@@ -348,6 +355,107 @@ void Organism::look_for_new_promoters_starting_before(int32_t pos) {
 
         if (dist <= 4) { // dist takes the hamming distance of the sequence from the consensus
             add_new_promoter(i, dist);
+        }
+    }
+}
+
+
+/**
+Optimize terminators search
+ **/
+
+void Organism::remove_terminators_around(int32_t pos_1, int32_t pos_2) {
+    if (mod(pos_1 - pos_2, dna_->length()) >= TERM_RANGE) {
+        remove_terminators_starting_between(mod(pos_1 - TERM_RANGE + 1,
+                                              dna_->length()),
+                                          pos_2);
+    } else {
+        remove_all_terminators();
+    }
+}
+
+void Organism::look_for_new_terminators_around(int32_t pos_1, int32_t pos_2) {
+    if (dna_->length() >= TERM_RANGE) {
+        look_for_new_terminators_starting_between(
+                mod(pos_1 - TERM_RANGE + 1,
+                    dna_->length()), pos_2);
+    }
+}
+
+
+/** REMOVE **/
+void Organism::remove_all_terminators() {
+    terminators.clear();
+}
+
+void Organism::remove_terminators_starting_between(int32_t pos_1, int32_t pos_2) {
+    if (pos_1 > pos_2) {
+        remove_terminators_starting_after(pos_1);
+        remove_terminators_starting_before(pos_2);
+    } else {
+        // suppression is in [pos1, pos_2[, pos_2 is excluded
+        terminators.erase(terminators.lower_bound(pos_1), terminators.upper_bound(pos_2-1));
+    }
+}
+
+void Organism::remove_terminators_starting_after(int32_t pos) {
+    terminators.erase(terminators.lower_bound(pos), terminators.end());
+}
+
+void Organism::remove_terminators_starting_before(int32_t pos) {
+    // suppression is in [0, pos[, pos is excluded
+    terminators.erase(terminators.begin(), terminators.upper_bound(pos-1));
+}
+
+/** LOCATE **/
+void Organism::locate_terminators() {
+    look_for_new_terminators_starting_between(0, dna_->length());
+}
+
+void Organism::add_new_terminator(int32_t position) {
+    // TODO: Insertion should not always occur, especially if promoter become better or worse ?
+    // terminators are deleted anyway if victim of mutation. the IF stays unnecessary
+    if(terminators.find(position) == terminators.end())
+        terminators.insert(position);
+}
+
+void Organism::look_for_new_terminators_starting_between(int32_t pos_1, int32_t pos_2) {
+    // When pos_1 > pos_2, we will perform the search in 2 steps.
+    // As positions  0 and dna_->length() are equivalent, it's preferable to
+    // keep 0 for pos_1 and dna_->length() for pos_2.
+
+    if (pos_1 >= pos_2) {
+        look_for_new_terminators_starting_after(pos_1);
+        look_for_new_terminators_starting_before(pos_2);
+        return;
+    }
+
+    for (int32_t i = pos_1; i < pos_2; i++) {
+        int dist = dna_->terminator_at(i);
+
+        if (dist == 4) {
+           add_new_terminator(i);
+        }
+    }
+}
+
+void Organism::look_for_new_terminators_starting_after(int32_t pos) {
+    for (int32_t i = pos; i < dna_->length(); i++) {
+        int dist = dna_->terminator_at(i);
+
+        if (dist == 4) {
+            add_new_terminator(i);
+        }
+    }
+}
+
+void Organism::look_for_new_terminators_starting_before(int32_t pos) {
+    for (int32_t i = 0; i < pos; i++) {
+
+        int dist = dna_->terminator_at(i);
+
+        if (dist == 4) {
+            add_new_terminator(i);
         }
     }
 }

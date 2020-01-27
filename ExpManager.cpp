@@ -374,10 +374,10 @@ void ExpManager::prepare_mutation(int indiv_id) {
 ExpManager::~ExpManager() {
     delete stats_best;
     delete stats_mean;
-/*
+
     for (auto i = 0; i < nb_indivs_; ++i) {
         delete dna_mutator_array_[i];
-    }*/
+    }
     delete[] dna_mutator_array_;
 
     delete[] internal_organisms_;
@@ -481,7 +481,7 @@ void ExpManager::opt_prom_compute_RNA(int indiv_id) {
     if (dna_mutator_array_[indiv_id]->hasMutate()) {
         internal_organisms_[indiv_id]->proteins.clear();
         internal_organisms_[indiv_id]->rnas.clear();
-        internal_organisms_[indiv_id]->terminators.clear();
+        //internal_organisms_[indiv_id]->terminators.clear();
 
         internal_organisms_[indiv_id]->rnas.resize(
                 internal_organisms_[indiv_id]->promoters_.size());
@@ -500,9 +500,10 @@ void ExpManager::opt_prom_compute_RNA(int indiv_id) {
             bool terminator_found = false;
 
             while (!terminator_found) {
-                int term_dist_leading = internal_organisms_[indiv_id]->dna_->terminator_at(cur_pos);
+                //int term_dist_leading = internal_organisms_[indiv_id]->dna_->terminator_at(cur_pos);
 
-                if (term_dist_leading == 4)
+                //if (term_dist_leading == 4)
+                if (internal_organisms_[indiv_id]->terminators.count(cur_pos) > 0)
                     terminator_found = true;
                 else {
                     cur_pos = cur_pos + 1 >= internal_organisms_[indiv_id]->length()
