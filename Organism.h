@@ -112,6 +112,7 @@ public:
 
 //private:
 
+    // PROMOTERS MGMT
     bool do_switch(int pos);
 
     void remove_all_promoters();
@@ -139,6 +140,29 @@ public:
     void look_for_new_promoters_starting_before(int32_t pos);
 
     void add_new_promoter(int32_t position, int8_t error);
+
+    // TERMINATORS MGMT
+    void remove_terminators_around(int32_t pos_1, int32_t pos_2);
+
+    void look_for_new_terminators_around(int32_t pos_1, int32_t pos_2);
+
+    void remove_all_terminators();
+
+    void remove_terminators_starting_between(int32_t pos_1, int32_t pos_2);
+
+    void remove_terminators_starting_after(int32_t pos);
+
+    void remove_terminators_starting_before(int32_t pos);
+
+    void locate_terminators();
+
+    void add_new_terminator(int32_t position);
+
+    void look_for_new_terminators_starting_between(int32_t pos_1, int32_t pos_2);
+
+    void look_for_new_terminators_starting_after(int32_t pos);
+
+    void look_for_new_terminators_starting_before(int32_t pos);
 
     inline int32_t mod(int32_t a, int32_t b) {
 
