@@ -396,6 +396,7 @@ ExpManager::~ExpManager() {
 void ExpManager::run_a_step(double w_max, double selection_pressure, bool first_gen) {
 
     // Running the simulation process for each organism
+    #pragma omp parallel for schedule(dynamic)
     for (int indiv_id = 0; indiv_id < nb_indivs_; indiv_id++) {
         selection(indiv_id);
         prepare_mutation(indiv_id);
@@ -411,15 +412,17 @@ void ExpManager::run_a_step(double w_max, double selection_pressure, bool first_
         }
     }
 
-
     for (int indiv_id = 0; indiv_id < nb_indivs_; indiv_id++) {
         prev_internal_organisms_[indiv_id] = internal_organisms_[indiv_id];
         internal_organisms_[indiv_id] = nullptr;
     }
 
+
     // Search for the best
     double best_fitness = prev_internal_organisms_[0]->fitness;
     int idx_best = 0;
+
+    #pragma omp parallel for schedule (dynamic) shared(best_fitness, idx_best)
     for (int indiv_id = 1; indiv_id < nb_indivs_; indiv_id++) {
         if (prev_internal_organisms_[indiv_id]->fitness > best_fitness) {
             idx_best = indiv_id;
@@ -438,6 +441,7 @@ void ExpManager::run_a_step(double w_max, double selection_pressure, bool first_
         stats_mean->reinit(AeTime::time());
     }
 
+    #pragma omp parallel for schedule (dynamic)
     for (int indiv_id = 0; indiv_id < nb_indivs_; indiv_id++) {
         if (first_gen || dna_mutator_array_[indiv_id]->hasMutate())
             prev_internal_organisms_[indiv_id]->compute_protein_stats();
@@ -1090,6 +1094,7 @@ void ExpManager::selection(int indiv_id) {
  * @param nb_gen : Number of generations to simulate
  */
 void ExpManager::run_evolution(int nb_gen) {
+    #pragma omp parallel for schedule (dynamic)
     for (int indiv_id = 0; indiv_id < nb_indivs_; indiv_id++) {
         // dna_mutator_array_ is set only to have has_mutate() true so that RNA, protein and phenotype will be computed
         dna_mutator_array_[indiv_id] = new DnaMutator(nullptr, 0, 0, indiv_id);
