@@ -5,36 +5,46 @@
 #include "Dna.h"
 #include "ExpManager.h"
 
-Dna::Dna(const Dna& clone) : seq_(clone.seq_) {
+Dna::Dna(const Dna& clone) : seq_(clone.seq_), length_(clone.length_) {
 }
 
-Dna::Dna(int length, Threefry::Gen& rng) : seq_(length) {
+Dna::Dna(int length, Threefry::Gen& rng) : seq_(length/8+1), length_(length) {
   // Generate a random genome
   for (int32_t i = 0; i < length; i++) {
-    seq_[i] = '0' + rng.random(NB_BASE);
+    int32_t pos=1;
+    seq_[i] = 0;
+    for (int32_t i=0; i < 8; i++) {
+      seq_[i] = rng.random(NB_BASE) * pos;
+      pos *= 2;
+    }
   }
 }
 
-Dna::Dna(char* genome, int length) : seq_(length) {
+Dna::Dna(char* genome, int length) : seq_(length/8+1), length_(length) {
   strcpy(seq_.data(), genome);
 }
 
-Dna::Dna(int length) : seq_(length) {
+Dna::Dna(int length) : seq_(length/8+1), length_(length) {
 }
 
 int Dna::length() const {
-  return seq_.size();
+  return length_;
 }
 
 void Dna::save(gzFile backup_file) {
-    int dna_length = length();
+    int dna_length = seq_.length();
+    int real_dna_length = lenght_;
+    gzwrite(backup_file, &real_dna_length, sizeof(real_dna_length));
     gzwrite(backup_file, &dna_length, sizeof(dna_length));
     gzwrite(backup_file, seq_.data(), dna_length * sizeof(seq_[0]));
 }
 
 void Dna::load(gzFile backup_file) {
     int dna_length;
+    int real_dna_length;
+
     gzread(backup_file, &dna_length, sizeof(dna_length));
+    gzread(backup_file, &real_dna_length, sizeof(real_dna_length));
 
     char tmp_seq[dna_length];
     gzread(backup_file, tmp_seq, dna_length * sizeof(tmp_seq[0]));
@@ -43,7 +53,14 @@ void Dna::load(gzFile backup_file) {
 }
 
 void Dna::set(int pos, char c) {
-  seq_[pos] = c;
+  bool b = (c=='1');
+
+  if(b)
+    seq_.set(pos);
+  else
+    seq_.clear(pos);
+    
+
 }
 
 /**
@@ -54,7 +71,7 @@ void Dna::set(int pos, char c) {
  */
 void Dna::remove(int pos_1, int pos_2) {
   assert(pos_1 >= 0 && pos_2 >= pos_1 && pos_2 <= seq_.size());
-  seq_.erase(seq_.begin() + pos_1, seq_.begin() + pos_2);
+  seq_.remove(pos_1,pos_2);
 }
 
 /**
@@ -64,11 +81,11 @@ void Dna::remove(int pos_1, int pos_2) {
  * @param seq : the sequence itself
  * @param seq_length : the size of the sequence
  */
-void Dna::insert(int pos, std::vector<char> seq) {
+void Dna::insert(int pos, Bitset & seq) {
 // Insert sequence 'seq' at position 'pos'
   assert(pos >= 0 && pos < seq_.size());
 
-  seq_.insert(seq_.begin() + pos, seq.begin(), seq.end());
+  seq_.insert(seq, pos);
 }
 
 /**
@@ -82,12 +99,11 @@ void Dna::insert(int pos, Dna* seq) {
 // Insert sequence 'seq' at position 'pos'
   assert(pos >= 0 && pos < seq_.size());
 
-  seq_.insert(seq_.begin() + pos, seq->seq_.begin(), seq->seq_.end());
+  seq_.insert(seq->seq_, pos);
 }
 
 void Dna::do_switch(int pos) {
-  if (seq_[pos] == '0') seq_[pos] = '1';
-  else seq_[pos] = '0';
+  seq_.flip(pos);
 }
 
 void Dna::do_duplication(int pos_1, int pos_2, int pos_3) {
